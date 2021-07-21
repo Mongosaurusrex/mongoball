@@ -3,12 +3,14 @@ import math
 import pygame
 from game_objects.images.sprite_resolvers import default_ball
 from game_objects.paddle import Paddle
+from game_objects.spark import Spark
 
 
 class Ball(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, sprite_group: pygame.sprite.Group):
         super().__init__()
 
+        self.sprite_group = sprite_group
         self.image = default_ball
         self.rect = pygame.Rect(400, 541, 9, 9)
         self.moving = False
@@ -34,8 +36,9 @@ class Ball(pygame.sprite.Sprite):
         y_vector = 0.0111111 * (math.pow(x_vector, 2)) - 100
 
         if self.speed < 0.2:
-            self.speed += 0.02
+            self.speed += 0.005
         else:
-            print("Max speed make spark")
+            spark = Spark(self.rect.x - 9, 550 - 22.5)
+            self.sprite_group.add(spark)
 
         self.velocity = [x_vector, y_vector]

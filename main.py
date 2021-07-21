@@ -4,18 +4,28 @@ from common.constants import WHITE, BLACK, SCORE, LIVES, SIZE, FPS
 from game_objects.paddle import Paddle
 from game_objects.ball import Ball
 from game_objects.life import Life
+from game_objects.brick import RedBrick
 
 
 def main():
     pygame.init()
     pygame.display.set_caption("Mongoball")
     screen = pygame.display.set_mode(SIZE)
-    paddle = Paddle()
-    ball = Ball()
-    sprite_group = pygame.sprite.Group()
-    sprite_group.add(paddle)
-    sprite_group.add(ball)
+
+    persistent_sprite_group = pygame.sprite.Group()
     life_sprite_group = pygame.sprite.Group()
+    level_sprite_group = pygame.sprite.Group()
+
+    paddle = Paddle()
+    ball = Ball(persistent_sprite_group)
+    persistent_sprite_group.add(paddle)
+    persistent_sprite_group.add(ball)
+
+    #  TODO: Remove and add proper level handling
+    for x in range(20):
+        brick = RedBrick(x * 40, 40)
+        level_sprite_group.add(brick)
+
     clock = pygame.time.Clock()
 
     current_lives = LIVES
@@ -44,35 +54,47 @@ def main():
             if not ball.moving:
                 ball.move_with_paddle(paddle)
 
-        if ball.rect.x >= 791:
+        if ball.rect.x >= 800:
             ball.velocity[0] = -ball.velocity[0]
-        if ball.rect.x <= 1:
+        if ball.rect.x <= 0:
             ball.velocity[0] = -ball.velocity[0]
-        if ball.rect.y > 599:
-            sprite_group.remove(ball)
-            ball = Ball()
-            sprite_group.add(ball)
+        if ball.rect.y > 600:
+            persistent_sprite_group.remove(ball)
+            ball = Ball(persistent_sprite_group)
+            persistent_sprite_group.add(ball)
             current_lives -= 1
             life_sprite_group.spritedict.clear()
 
-            if current_lives == 0:
+            if current_lives == -1:
                 pygame.quit()
                 quit()
-        if ball.rect.y < 9:
+        if ball.rect.y < 0:
             ball.velocity[1] = -ball.velocity[1]
 
         if pygame.sprite.collide_mask(ball, paddle):
             ball.paddle_bounce(paddle)
 
+        brick_hit = pygame.sprite.spritecollide(ball, level_sprite_group, False)
+        if brick_hit:
+            hit_rect = brick_hit[0].rect
+            if hit_rect.left > ball.rect.left or ball.rect.right < hit_rect.right:
+                ball.velocity[0] = -ball.velocity[0]
+                brick_hit[0].destroy()
+            else:
+                ball.velocity[1] = -ball.velocity[1]
+                brick_hit[0].destroy()
+
         for x in range(current_lives):
             life = Life(20 * (x + 1))
             life_sprite_group.add(life)
 
-        sprite_group.update()
+        persistent_sprite_group.update()
         life_sprite_group.update()
+        level_sprite_group.update()
         screen.fill(BLACK)
-        sprite_group.draw(screen)
+        persistent_sprite_group.draw(screen)
         life_sprite_group.draw(screen)
+        level_sprite_group.draw(screen)
         pygame.display.update()
         clock.tick(FPS)
 
